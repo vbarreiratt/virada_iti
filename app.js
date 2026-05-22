@@ -1223,6 +1223,11 @@ function initSharingEvents() {
         whatsappBtn.addEventListener('click', shareItineraryWhatsApp);
     }
     
+    const storiesBtn = document.getElementById('btn-share-stories');
+    if (storiesBtn) {
+        storiesBtn.addEventListener('click', shareItineraryStories);
+    }
+    
     const closeBtn = document.getElementById('share-close-btn');
     if (closeBtn) {
         closeBtn.addEventListener('click', () => {
@@ -1240,6 +1245,37 @@ function initSharingEvents() {
             }
         });
     }
+    
+    const closeStoriesBtn = document.getElementById('btn-close-stories');
+    if (closeStoriesBtn) {
+        closeStoriesBtn.addEventListener('click', () => {
+            document.getElementById('stories-modal').classList.add('hidden');
+        });
+    }
+    
+    const storiesModal = document.getElementById('stories-modal');
+    if (storiesModal) {
+        storiesModal.addEventListener('click', (e) => {
+            if (e.target === storiesModal) {
+                storiesModal.classList.add('hidden');
+            }
+        });
+    }
+    
+    const downloadStoriesBtn = document.getElementById('btn-download-stories');
+    if (downloadStoriesBtn) {
+        downloadStoriesBtn.addEventListener('click', downloadStoriesImage);
+    }
+    
+    // Theme selector listeners
+    document.querySelectorAll('.stories-theme-selector .btn-theme-opt').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.stories-theme-selector .btn-theme-opt').forEach(b => b.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            currentStoriesTheme = e.currentTarget.getAttribute('data-theme');
+            renderStoriesCanvas(currentStoriesTheme);
+        });
+    });
 }
 
 function generateShareLink() {
@@ -1303,6 +1339,450 @@ function shareItineraryWhatsApp() {
     
     window.open(waUrl, '_blank');
 }
+
+let currentStoriesTheme = 'deep-space';
+
+function shareItineraryStories() {
+    if (selectedAttractions.length === 0) {
+        showToast("Adicione atrações ao seu roteiro para compartilhar!");
+        return;
+    }
+    
+    const storiesModal = document.getElementById('stories-modal');
+    if (storiesModal) {
+        storiesModal.classList.remove('hidden');
+    }
+    
+    currentStoriesTheme = 'deep-space';
+    
+    // Reset active buttons in theme selector
+    document.querySelectorAll('.stories-theme-selector .btn-theme-opt').forEach(btn => {
+        if (btn.getAttribute('data-theme') === currentStoriesTheme) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Render
+    renderStoriesCanvas(currentStoriesTheme);
+}
+
+function renderStoriesCanvas(theme) {
+    const canvas = document.getElementById('stories-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 1. Draw Background
+    if (theme === 'deep-space') {
+        const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        bgGrad.addColorStop(0, '#080612');
+        bgGrad.addColorStop(0.5, '#181236');
+        bgGrad.addColorStop(1, '#0b0914');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw space nebulas
+        const neb1 = ctx.createRadialGradient(900, 200, 50, 900, 200, 450);
+        neb1.addColorStop(0, 'rgba(236, 72, 153, 0.25)');
+        neb1.addColorStop(1, 'rgba(236, 72, 153, 0)');
+        ctx.fillStyle = neb1;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        const neb2 = ctx.createRadialGradient(150, 1200, 50, 150, 1200, 550);
+        neb2.addColorStop(0, 'rgba(139, 92, 246, 0.22)');
+        neb2.addColorStop(1, 'rgba(139, 92, 246, 0)');
+        ctx.fillStyle = neb2;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else if (theme === 'spotify-dark') {
+        const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        bgGrad.addColorStop(0, '#121212');
+        bgGrad.addColorStop(1, '#1A1A1A');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        const neb = ctx.createRadialGradient(540, 1920, 100, 540, 1920, 800);
+        neb.addColorStop(0, 'rgba(29, 185, 84, 0.15)');
+        neb.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = neb;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else if (theme === 'neon-cyber') {
+        const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        bgGrad.addColorStop(0, '#060112');
+        bgGrad.addColorStop(1, '#1b0330');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw grid
+        ctx.strokeStyle = 'rgba(42, 8, 69, 0.5)';
+        ctx.lineWidth = 2;
+        for (let y = 0; y < canvas.height; y += 80) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+        }
+        for (let x = 0; x < canvas.width; x += 80) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+            ctx.stroke();
+        }
+    }
+    
+    ctx.shadowBlur = 0;
+    
+    // 2. Draw Left Vertical Text "2026"
+    ctx.save();
+    ctx.translate(100, 750);
+    ctx.rotate(-Math.PI / 2);
+    ctx.font = '900 180px "Inter", "Segoe UI", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    if (theme === 'deep-space') {
+        ctx.strokeStyle = '#D8B4FE';
+        ctx.lineWidth = 4;
+        ctx.strokeText('2026', 0, 0);
+    } else if (theme === 'spotify-dark') {
+        ctx.fillStyle = '#1DB954';
+        ctx.fillText('2026', 0, 0);
+    } else if (theme === 'neon-cyber') {
+        ctx.strokeStyle = '#FFFF00';
+        ctx.lineWidth = 4;
+        ctx.strokeText('2026', 0, 0);
+    }
+    ctx.restore();
+    
+    // 3. Draw Square Box for Route
+    const boxX = 160;
+    const boxY = 220;
+    const boxSize = 760;
+    
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(boxX, boxY, boxSize, boxSize);
+    
+    if (theme === 'deep-space') {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+        ctx.lineWidth = 2;
+        for (let r = 100; r < 600; r += 100) {
+            ctx.beginPath();
+            ctx.arc(boxX + boxSize/2, boxY + boxSize/2, r, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    } else if (theme === 'spotify-dark') {
+        ctx.strokeStyle = '#181818';
+        ctx.lineWidth = 3;
+        for (let i = -boxSize; i < boxSize; i += 40) {
+            ctx.beginPath();
+            ctx.moveTo(boxX + i, boxY);
+            ctx.lineTo(boxX + i + boxSize, boxY + boxSize);
+            ctx.stroke();
+        }
+    } else if (theme === 'neon-cyber') {
+        ctx.strokeStyle = 'rgba(255, 255, 0, 0.08)';
+        ctx.lineWidth = 1.5;
+        for (let i = 40; i < boxSize; i += 40) {
+            ctx.beginPath();
+            ctx.moveTo(boxX + i, boxY);
+            ctx.lineTo(boxX + i, boxY + boxSize);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(boxX, boxY + i);
+            ctx.lineTo(boxX + boxSize, boxY + i);
+            ctx.stroke();
+        }
+    }
+    
+    // Checkerboard border
+    const checkerSize = 20;
+    ctx.fillStyle = theme === 'neon-cyber' ? '#FFFF00' : '#FFFFFF';
+    for (let x = boxX; x < boxX + boxSize; x += checkerSize * 2) {
+        ctx.fillRect(x, boxY, checkerSize, checkerSize);
+        ctx.fillRect(x + checkerSize, boxY + boxSize - checkerSize, checkerSize, checkerSize);
+    }
+    for (let y = boxY; y < boxY + boxSize; y += checkerSize * 2) {
+        ctx.fillRect(boxX, y + checkerSize, checkerSize, checkerSize);
+        ctx.fillRect(boxX + boxSize - checkerSize, y, checkerSize, checkerSize);
+    }
+    
+    // 4. Draw Strava-style Route Line
+    const sorted = [...selectedAttractions].sort((a, b) => getAbsoluteTime(a.dia, a.horario) - getAbsoluteTime(b.dia, b.horario));
+    const points = [];
+    sorted.forEach(item => {
+        const cacheKey = `${item.palco}::${item.endereco}`;
+        const latLng = geocodeCache[cacheKey];
+        if (latLng) {
+            points.push({
+                lat: latLng[0],
+                lng: latLng[1],
+                nome: item.nome,
+                palco: item.palco
+            });
+        }
+    });
+    
+    if (points.length > 0) {
+        let minLat = Infinity, maxLat = -Infinity;
+        let minLng = Infinity, maxLng = -Infinity;
+        points.forEach(pt => {
+            if (pt.lat < minLat) minLat = pt.lat;
+            if (pt.lat > maxLat) maxLat = pt.lat;
+            if (pt.lng < minLng) minLng = pt.lng;
+            if (pt.lng > maxLng) maxLng = pt.lng;
+        });
+        
+        const pad = 120;
+        const drawMinX = boxX + pad;
+        const drawMaxX = boxX + boxSize - pad;
+        const drawMinY = boxY + pad;
+        const drawMaxY = boxY + boxSize - pad;
+        
+        const mapPoint = (pt) => {
+            let x, y;
+            if (maxLng === minLng) {
+                x = boxX + boxSize / 2;
+            } else {
+                x = drawMinX + ((pt.lng - minLng) / (maxLng - minLng)) * (drawMaxX - drawMinX);
+            }
+            if (maxLat === minLat) {
+                y = boxY + boxSize / 2;
+            } else {
+                y = drawMaxY - ((pt.lat - minLat) / (maxLat - minLat)) * (drawMaxY - drawMinY);
+            }
+            return { x, y };
+        };
+        
+        let pathColor = '#FF5722';
+        let glowColor = '#FF5722';
+        
+        if (theme === 'deep-space') {
+            pathColor = '#FF2E93';
+            glowColor = '#FF2E93';
+        } else if (theme === 'spotify-dark') {
+            pathColor = '#1DB954';
+            glowColor = '#1DB954';
+        } else if (theme === 'neon-cyber') {
+            pathColor = '#00FFFF';
+            glowColor = '#00FFFF';
+        }
+        
+        ctx.save();
+        ctx.strokeStyle = pathColor;
+        ctx.lineWidth = 14;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = 18;
+        
+        if (points.length >= 2) {
+            ctx.beginPath();
+            const firstPt = mapPoint(points[0]);
+            ctx.moveTo(firstPt.x, firstPt.y);
+            for (let i = 1; i < points.length; i++) {
+                const pt = mapPoint(points[i]);
+                ctx.lineTo(pt.x, pt.y);
+            }
+            ctx.stroke();
+        }
+        ctx.restore();
+        
+        points.forEach((pt, i) => {
+            const canvasPt = mapPoint(pt);
+            
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(canvasPt.x, canvasPt.y, 14, 0, Math.PI * 2);
+            ctx.fillStyle = i === 0 ? '#1DB954' : (i === points.length - 1 ? '#E1306C' : '#FFFFFF');
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(canvasPt.x, canvasPt.y, 7, 0, Math.PI * 2);
+            ctx.fillStyle = '#000000';
+            ctx.fill();
+            ctx.restore();
+            
+            if (i === 0 || i === points.length - 1) {
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 22px "Inter", "Segoe UI", sans-serif';
+                ctx.textAlign = 'center';
+                const textLabel = i === 0 ? 'PARTIDA' : 'CHEGADA';
+                ctx.fillText(textLabel, canvasPt.x, canvasPt.y - 24);
+            }
+        });
+    } else {
+        ctx.save();
+        ctx.strokeStyle = theme === 'spotify-dark' ? '#1DB954' : (theme === 'neon-cyber' ? '#00FFFF' : '#FF2E93');
+        ctx.lineWidth = 10;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.shadowColor = ctx.strokeStyle;
+        ctx.shadowBlur = 12;
+        
+        ctx.beginPath();
+        const centerY = boxY + boxSize / 2;
+        ctx.moveTo(boxX + 150, centerY + 100);
+        ctx.bezierCurveTo(boxX + 300, centerY - 150, boxX + 450, centerY + 150, boxX + boxSize - 150, centerY - 100);
+        ctx.stroke();
+        ctx.restore();
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(boxX + 150, centerY + 100, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(boxX + boxSize - 150, centerY - 100, 10, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.font = 'bold 26px "Inter", "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Nenhuma atração no mapa', boxX + boxSize/2, centerY + 200);
+    }
+    
+    // 5. Draw Top Attractions List
+    const listStartY = 1180;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'left';
+    ctx.font = '900 36px "Inter", "Segoe UI", sans-serif';
+    ctx.fillText('SUAS PRINCIPAIS ATRAÇÕES', boxX, listStartY);
+    
+    const maxItems = 4;
+    const itemsToShow = sorted.slice(0, maxItems);
+    
+    itemsToShow.forEach((item, i) => {
+        const itemY = listStartY + 70 + (i * 105);
+        
+        ctx.font = '900 52px "Inter", "Segoe UI", sans-serif';
+        if (theme === 'deep-space') {
+            ctx.fillStyle = '#EC4899';
+        } else if (theme === 'spotify-dark') {
+            ctx.fillStyle = '#1DB954';
+        } else if (theme === 'neon-cyber') {
+            ctx.fillStyle = '#FFFF00';
+        }
+        ctx.fillText(`${i + 1}`, boxX, itemY + 10);
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 34px "Inter", "Segoe UI", sans-serif';
+        let showName = item.nome;
+        if (ctx.measureText(showName).width > 680) {
+            while (ctx.measureText(showName + '...').width > 680 && showName.length > 0) {
+                showName = showName.slice(0, -1);
+            }
+            showName += '...';
+        }
+        ctx.fillText(showName, boxX + 60, itemY - 5);
+        
+        ctx.fillStyle = theme === 'deep-space' ? '#C084FC' : (theme === 'spotify-dark' ? '#A3A3A3' : '#00FFFF');
+        ctx.font = '600 24px "Inter", "Segoe UI", sans-serif';
+        ctx.fillText(`${item.palco} • ${item.dia} às ${item.horario}`, boxX + 60, itemY + 28);
+    });
+    
+    if (sorted.length > maxItems) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.font = 'italic bold 24px "Inter", "Segoe UI", sans-serif';
+        ctx.fillText(`+ ${sorted.length - maxItems} atrações no seu roteiro completo`, boxX + 60, listStartY + 75 + (maxItems * 105));
+    }
+    
+    // 6. Draw Stats Block
+    const statsY = 1680;
+    const totalShows = sorted.length;
+    
+    let totalKm = '0.0';
+    const overlayInfo = document.getElementById('map-overlay-info');
+    if (overlayInfo) {
+        const text = overlayInfo.textContent;
+        const match = text.match(/distância:\s*([\d,.]+)\s*km/i);
+        if (match) {
+            totalKm = match[1];
+        }
+    }
+    
+    const palcoCounts = {};
+    sorted.forEach(attr => {
+        palcoCounts[attr.palco] = (palcoCounts[attr.palco] || 0) + 1;
+    });
+    let favoritePalco = '-';
+    let maxCount = 0;
+    for (const [palco, count] of Object.entries(palcoCounts)) {
+        if (count > maxCount) {
+            maxCount = count;
+            favoritePalco = palco;
+        }
+    }
+    if (favoritePalco.length > 15) {
+        favoritePalco = favoritePalco.substring(0, 13) + '...';
+    }
+    
+    const colWidth = 260;
+    
+    ctx.textAlign = 'center';
+    ctx.fillStyle = theme === 'deep-space' ? '#C084FC' : (theme === 'spotify-dark' ? '#A3A3A3' : '#00FFFF');
+    ctx.font = 'bold 20px "Inter", "Segoe UI", sans-serif';
+    ctx.fillText('SHOWS', boxX + 110, statsY);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '900 50px "Inter", "Segoe UI", sans-serif';
+    ctx.fillText(`${totalShows}`, boxX + 110, statsY + 60);
+    
+    ctx.fillStyle = theme === 'deep-space' ? '#C084FC' : (theme === 'spotify-dark' ? '#A3A3A3' : '#00FFFF');
+    ctx.font = 'bold 20px "Inter", "Segoe UI", sans-serif';
+    ctx.fillText('DISTÂNCIA', boxX + colWidth + 110, statsY);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '900 50px "Inter", "Segoe UI", sans-serif';
+    ctx.fillText(`${totalKm} km`, boxX + colWidth + 110, statsY + 60);
+    
+    ctx.fillStyle = theme === 'deep-space' ? '#C084FC' : (theme === 'spotify-dark' ? '#A3A3A3' : '#00FFFF');
+    ctx.font = 'bold 20px "Inter", "Segoe UI", sans-serif';
+    ctx.fillText('PALCO FAVORITO', boxX + (colWidth * 2) + 110, statsY);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '900 38px "Inter", "Segoe UI", sans-serif';
+    ctx.fillText(favoritePalco, boxX + (colWidth * 2) + 110, statsY + 54);
+    
+    // 7. Draw Bottom Brand Bar
+    const footerY = 1860;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(boxX, footerY - 40);
+    ctx.lineTo(boxX + boxSize, footerY - 40);
+    ctx.stroke();
+    
+    ctx.textAlign = 'center';
+    
+    ctx.save();
+    ctx.fillStyle = theme === 'deep-space' ? '#EC4899' : (theme === 'spotify-dark' ? '#1DB954' : '#FFFF00');
+    ctx.translate(330, footerY);
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+        ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * 15, -Math.sin((18 + i * 72) * Math.PI / 180) * 15);
+        ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * 7, -Math.sin((54 + i * 72) * Math.PI / 180) * 7);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.font = '900 24px "Inter", "Segoe UI", sans-serif';
+    ctx.fillText('VIRADA-SP / WRAPPED', 570, footerY + 8);
+}
+
+function downloadStoriesImage() {
+    const canvas = document.getElementById('stories-canvas');
+    if (!canvas) return;
+    
+    const dataURL = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = 'roteiro-virada-stories.png';
+    link.href = dataURL;
+    link.click();
+}
+
 
 function checkSharedItinerary() {
     const params = new URLSearchParams(window.location.search);

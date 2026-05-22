@@ -131,6 +131,10 @@
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.42 9.864-9.858.002-2.634-1.023-5.11-2.884-6.973C16.592 1.91 14.12 .887 11.5 .887c-5.444 0-9.873 4.42-9.877 9.86-.001 1.942.508 3.84 1.472 5.516l-.979 3.578 3.673-.963zm13.753-11.23c-.305-.153-1.808-.891-2.088-.992-.28-.101-.485-.153-.688.153-.203.305-.787.992-.965 1.193-.177.202-.355.228-.66.076-.305-.153-1.288-.475-2.454-1.516-.908-.81-1.52-1.81-1.698-2.115-.178-.305-.019-.47.133-.621.137-.137.305-.355.457-.533.153-.178.203-.305.305-.508.102-.203.05-.381-.025-.533-.076-.153-.688-1.658-.943-2.27-.248-.598-.5-.516-.688-.526-.178-.01-.381-.01-.584-.01-.203 0-.533.076-.813.381-.28.305-1.066 1.042-1.066 2.54 0 1.498 1.092 2.946 1.244 3.149.153.203 2.15 3.284 5.207 4.605.727.314 1.294.502 1.737.643.73.232 1.394.2 1.918.122.585-.087 1.808-.737 2.062-1.448.254-.71.254-1.32.178-1.448-.076-.127-.28-.203-.584-.355z"/></svg>
                     <span>WhatsApp</span>
                 </button>
+                <button class="btn-share btn-stories" id="btn-share-stories">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+                    <span>Stories</span>
+                </button>
             </div>
             
             <div id="itinerary-empty" class="empty-state">
@@ -267,6 +271,41 @@
             <div class="modal-footer">
                 <button class="btn-primary" id="share-action-btn">Ação</button>
                 <button class="btn-secondary" id="share-close-btn">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STORIES SHARE MODAL -->
+    <div id="stories-modal" class="modal-overlay hidden">
+        <div class="modal-card animate-slide-up" style="max-width: 420px;">
+            <div class="modal-header">
+                <div class="alert-icon" style="color: var(--accent-pink);">
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2.5" fill="none"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                </div>
+                <h3>Exportar para Stories</h3>
+            </div>
+            
+            <div class="modal-body" style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+                <p style="text-align: center; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 4px;">
+                    Escolha um tema e baixe a imagem de alta qualidade para postar nos seus stories!
+                </p>
+                
+                <!-- Style Selector -->
+                <div class="stories-theme-selector" style="display: flex; gap: 8px; justify-content: center; width: 100%; margin-bottom: 4px;">
+                    <button class="btn-theme-opt active" data-theme="deep-space">Deep Space</button>
+                    <button class="btn-theme-opt" data-theme="spotify-dark">Spotify Dark</button>
+                    <button class="btn-theme-opt" data-theme="neon-cyber">Neon Cyber</button>
+                </div>
+                
+                <!-- Canvas Container for Preview -->
+                <div class="stories-preview-container" style="width: 100%; max-width: 280px; aspect-ratio: 9/16; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);">
+                    <canvas id="stories-canvas" width="1080" height="1920" style="width: 100%; height: 100%; display: block; background: #0b0914;"></canvas>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn-primary" id="btn-download-stories">Baixar Imagem</button>
+                <button class="btn-secondary" id="btn-close-stories">Fechar</button>
             </div>
         </div>
     </div>
