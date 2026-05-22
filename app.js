@@ -24,8 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderAttractionsList();
     updateSelectedBadge();
     
-    // Initialize map in the background (or when Map tab is active)
+    // Initialize map in the background and plot initial itinerary if any
     initMap();
+    triggerGeocodeForItinerary();
     
     // Initialize Match elements
     initMatchDragEvents();
