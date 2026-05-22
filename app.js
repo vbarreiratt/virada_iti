@@ -1218,6 +1218,11 @@ function initSharingEvents() {
         shareBtn.addEventListener('click', generateShareLink);
     }
     
+    const whatsappBtn = document.getElementById('btn-share-whatsapp');
+    if (whatsappBtn) {
+        whatsappBtn.addEventListener('click', shareItineraryWhatsApp);
+    }
+    
     const closeBtn = document.getElementById('share-close-btn');
     if (closeBtn) {
         closeBtn.addEventListener('click', () => {
@@ -1274,6 +1279,29 @@ function generateShareLink() {
         }
         document.body.removeChild(textArea);
     });
+}
+
+function shareItineraryWhatsApp() {
+    if (selectedAttractions.length === 0) {
+        showToast("Adicione atrações ao seu roteiro para compartilhar!");
+        return;
+    }
+    
+    const indices = selectedAttractions.map(attr => {
+        return ATTRACTIONS_DATA.findIndex(item => 
+            item.nome === attr.nome && item.dia === attr.dia && item.horario === attr.horario
+        );
+    }).filter(idx => idx !== -1);
+    
+    if (indices.length === 0) return;
+    
+    const shareStr = indices.join(',');
+    const url = `${window.location.origin}${window.location.pathname}?share=${shareStr}`;
+    
+    const text = `Confira meu roteiro personalizado para a Virada SP! Crie o seu e compare comigo no link: ${url}`;
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    
+    window.open(waUrl, '_blank');
 }
 
 function checkSharedItinerary() {
