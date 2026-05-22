@@ -614,7 +614,6 @@ async function triggerGeocodeForItinerary() {
     
     // Plot markers and draw routes
     plotCoordinates(coordinates);
-    updateMapOverlayInfo(coordinates.length);
 }
 
 function clearMapMarkersAndRoutes() {
@@ -696,13 +695,29 @@ async function geocodeAddress(stageName, address) {
     }
 }
 
+// Calculate distance in meters between two geocoordinates using Haversine formula
+function getHaversineDistance(coords1, coords2) {
+    const R = 6371e3; // Earth radius in meters
+    const lat1 = coords1[0] * Math.PI / 180;
+    const lat2 = coords2[0] * Math.PI / 180;
+    const deltaLat = (coords2[0] - coords1[0]) * Math.PI / 180;
+    const deltaLon = (coords2[1] - coords1[1]) * Math.PI / 180;
+
+    const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
+              Math.cos(lat1) * Math.cos(lat2) *
+              Math.sin(deltaLon/2) * Math.sin(deltaLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c;
+}
+
 function plotCoordinates(points) {
     if (!map) return;
     
     const latLngs = [];
     
     points.forEach(point => {
-        // Create custom divIcon for numbered numbered map node
+        // Create custom divIcon for numbered map node
         const icon = L.divIcon({
             className: 'custom-map-icon',
             html: `<div class="custom-map-marker" id="marker-order-${point.order}">${point.order}</div>`,
@@ -725,8 +740,23 @@ function plotCoordinates(points) {
         latLngs.push(point.coords);
     });
     
-    // Draw real-world street route using Leaflet Routing Machine
+    // Draw route lines and update overlays
     if (latLngs.length > 1) {
+        // 1. Draw fallback straight-line polyline immediately so map is never empty
+        drawFallbackPolyline(latLngs);
+        
+        // Calculate initial straight-line distance estimates
+        let estDistanceMeters = 0;
+        for (let i = 0; i < latLngs.length - 1; i++) {
+            estDistanceMeters += getHaversineDistance(latLngs[i], latLngs[i+1]);
+        }
+        // Assume average walking speed of 4.5 km/h = 1.25 m/s
+        const estDurationSeconds = estDistanceMeters / 1.25;
+        
+        // Update overlay with fallback straight-line estimations
+        updateMapOverlayInfo(points.length, estDistanceMeters, estDurationSeconds, true);
+        
+        // 2. Try drawing real-world street route using Leaflet Routing Machine
         if (typeof L.Routing !== 'undefined') {
             const waypoints = latLngs.map(coord => L.latLng(coord[0], coord[1]));
             
@@ -755,23 +785,29 @@ function plotCoordinates(points) {
                 routingControl.on('routesfound', function(e) {
                     const routes = e.routes;
                     if (routes && routes.length > 0) {
+                        // OSRM found street route! Remove the fallback straight-line polyline
+                        if (routePolyline) {
+                            map.removeLayer(routePolyline);
+                            routePolyline = null;
+                        }
+                        
                         const summary = routes[0].summary;
-                        updateMapOverlayInfoWithRouteDetails(points.length, summary.totalDistance, summary.totalTime);
+                        updateMapOverlayInfo(points.length, summary.totalDistance, summary.totalTime, false);
                     }
                 });
                 
                 routingControl.on('routingerror', function(e) {
-                    console.warn('Routing error, falling back to straight lines:', e);
-                    drawFallbackPolyline(latLngs);
+                    console.warn('Routing error, keeping straight lines:', e);
+                    // Do nothing, fallback polyline and estimation overlay are already drawn
                 });
             } catch (err) {
                 console.error('Error initializing Leaflet Routing Machine:', err);
-                drawFallbackPolyline(latLngs);
+                // Do nothing, fallback polyline and estimation overlay are already drawn
             }
-        } else {
-            // Fallback if routing library not loaded
-            drawFallbackPolyline(latLngs);
         }
+    } else {
+        // Just 1 marker, clear overlay distance/time
+        updateMapOverlayInfo(points.length);
     }
     
     fitMapToMarkers();
@@ -790,43 +826,6 @@ function drawFallbackPolyline(latLngs) {
     }).addTo(map);
 }
 
-function updateMapOverlayInfoWithRouteDetails(activePointsCount, distanceMeters, durationSeconds) {
-    const overlay = document.getElementById('map-overlay-info');
-    const summary = document.getElementById('map-route-summary');
-    
-    if (activePointsCount === 0) {
-        overlay.classList.add('hidden');
-        return;
-    }
-    
-    const distanceKm = (distanceMeters / 1000).toFixed(1);
-    const durationMinutes = Math.round(durationSeconds / 60);
-    let durationText = '';
-    if (durationMinutes > 60) {
-        const hours = Math.floor(durationMinutes / 60);
-        const mins = durationMinutes % 60;
-        durationText = `${hours}h${mins > 0 ? mins.toString().padStart(2, '0') : '00'}`;
-    } else {
-        durationText = `${durationMinutes} min`;
-    }
-    
-    overlay.classList.remove('hidden');
-    summary.innerHTML = `
-        <h4>Seu Percurso da Virada</h4>
-        <p>Conectando <strong>${activePointsCount} locais</strong> pelas ruas de SP.</p>
-        <div style="margin-top: 6.5px; font-size: 0.82rem; opacity: 0.95; display: flex; gap: 14px; color: var(--accent-cyan); font-weight: 600;">
-            <span style="display: flex; align-items: center; gap: 4px;">
-                <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" style="flex-shrink:0;"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon></svg>
-                ${distanceKm} km no total
-            </span>
-            <span style="display: flex; align-items: center; gap: 4px;">
-                <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                ~${durationText} de viagem
-            </span>
-        </div>
-    `;
-}
-
 function fitMapToMarkers() {
     if (!map || mapMarkers.length === 0) return;
     
@@ -834,7 +833,7 @@ function fitMapToMarkers() {
     map.fitBounds(group.getBounds().pad(0.15));
 }
 
-function updateMapOverlayInfo(activePointsCount = 0) {
+function updateMapOverlayInfo(activePointsCount = 0, distanceMeters = null, durationSeconds = null, isEstimated = false) {
     const overlay = document.getElementById('map-overlay-info');
     const summary = document.getElementById('map-route-summary');
     
@@ -844,10 +843,41 @@ function updateMapOverlayInfo(activePointsCount = 0) {
     }
     
     overlay.classList.remove('hidden');
-    summary.innerHTML = `
-        <h4>Seu Percurso da Virada</h4>
-        <p>A rota conecta <strong>${activePointsCount} locais</strong> cronologicamente. Toque nos marcadores numerados para detalhes.</p>
-    `;
+    
+    if (distanceMeters !== null && durationSeconds !== null) {
+        const distanceKm = (distanceMeters / 1000).toFixed(1);
+        const durationMinutes = Math.round(durationSeconds / 60);
+        let durationText = '';
+        if (durationMinutes > 60) {
+            const hours = Math.floor(durationMinutes / 60);
+            const mins = durationMinutes % 60;
+            durationText = `${hours}h${mins > 0 ? mins.toString().padStart(2, '0') : '00'}`;
+        } else {
+            durationText = `${durationMinutes} min`;
+        }
+        
+        const typeText = isEstimated ? 'em linha reta (est.)' : 'pelas ruas de SP';
+        
+        summary.innerHTML = `
+            <h4>Seu Percurso da Virada</h4>
+            <p>Conectando <strong>${activePointsCount} locais</strong> ${typeText}.</p>
+            <div style="margin-top: 6.5px; font-size: 0.82rem; opacity: 0.95; display: flex; gap: 14px; color: var(--accent-cyan); font-weight: 600;">
+                <span style="display: flex; align-items: center; gap: 4px;">
+                    <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" style="flex-shrink:0;"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon></svg>
+                    ${distanceKm} km no total
+                </span>
+                <span style="display: flex; align-items: center; gap: 4px;">
+                    <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    ~${durationText} de ${isEstimated ? 'caminhada' : 'viagem'}
+                </span>
+            </div>
+        `;
+    } else {
+        summary.innerHTML = `
+            <h4>Seu Percurso da Virada</h4>
+            <p>A rota conecta <strong>${activePointsCount} locais</strong> cronologicamente. Toque nos marcadores numerados para detalhes.</p>
+        `;
+    }
 }
 
 // --- Tinder-Style Match Deck Logic ---
