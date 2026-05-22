@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Virada SP - Roteiro Inteligente</title>
+    <meta name="description" content="Planeje seu roteiro personalizado para a Virada Cultural. Escolha suas atrações e veja o percurso ideal no mapa.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Web App Manifest (for mobile look & feel) -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0d091a">
+</head>
+<body>
+    <!-- Background Glow Elements (Nebulas) -->
+    <div class="bg-glow blob-1"></div>
+    <div class="bg-glow blob-2"></div>
+    <div class="bg-glow blob-3"></div>
+
+    <!-- App Header -->
+    <header class="app-header">
+        <div class="header-logo">
+            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" class="logo-icon"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+            <h1>Virada<span>SP</span></h1>
+        </div>
+        <div id="selected-badge" class="selected-badge hidden">
+            <span id="selected-count">0</span> selecionadas
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="app-main">
+        
+        <!-- SECTION 1: ATRAÇÕES (SEARCH/FILTER/ADD) -->
+        <section id="section-attractions" class="app-section active">
+            <div class="search-container">
+                <div class="search-box">
+                    <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="search-input" placeholder="Buscar atração, palco ou endereço...">
+                    <button id="clear-search" class="clear-search hidden">&times;</button>
+                </div>
+                
+                <div class="filter-group">
+                    <div class="filter-label">Dia:</div>
+                    <div class="filter-pills" id="day-filters">
+                        <button class="pill active" data-day="all">Todos</button>
+                        <button class="pill" data-day="23 de maio">23 Mai</button>
+                        <button class="pill" data-day="24 de maio">24 Mai</button>
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <div class="filter-label">Região/Palco:</div>
+                    <div class="filter-pills" id="region-filters">
+                        <button class="pill active" data-region="all">Todos</button>
+                        <button class="pill" data-region="centro">Centro</button>
+                        <button class="pill" data-region="zl">Zona Leste</button>
+                        <button class="pill" data-region="zn">Zona Norte</button>
+                        <button class="pill" data-region="zs">Zona Sul</button>
+                        <button class="pill" data-region="zo">Zona Oeste</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="results-header">
+                <span id="results-count">Carregando atrações...</span>
+            </div>
+            
+            <div class="attractions-list" id="attractions-list">
+                <!-- Dynamic cards populated by JS -->
+            </div>
+        </section>
+
+        <!-- SECTION 4: MATCH (TINDER-LIKE SWIPE) -->
+        <section id="section-match" class="app-section">
+            <div class="match-header">
+                <h2>Matches da Virada</h2>
+                <p>Arraste para a direita para <strong>Quero ir</strong> ou para a esquerda para <strong>Ignorar</strong>.</p>
+            </div>
+            
+            <div class="match-container">
+                <div class="match-deck" id="match-deck">
+                    <!-- Cards will be dynamically generated by JS -->
+                    <div id="match-empty-state" class="empty-state hidden">
+                        <div class="empty-icon">
+                            <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                        </div>
+                        <h3>Fim dos Matches!</h3>
+                        <p>Você já avaliou todas as atrações disponíveis.</p>
+                        <button class="btn-primary" onclick="resetMatchDeck()">Recomeçar Match</button>
+                    </div>
+                </div>
+                
+                <div class="match-controls" id="match-controls">
+                    <button class="btn-match-action reject" id="btn-match-reject" title="Ignorar (Esquerda)">
+                        <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="3" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                    <button class="btn-match-action accept" id="btn-match-accept" title="Quero Ir (Direita)">
+                        <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="3" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: MEU ROTEIRO (TIMELINE & ROUTE SUGGESTIONS) -->
+        <section id="section-itinerary" class="app-section">
+            <div class="itinerary-header">
+                <h2>Seu Cronograma Personalizado</h2>
+                <p>Organizado cronologicamente para você não perder nada.</p>
+            </div>
+            
+            <div id="itinerary-share-bar" class="itinerary-share-bar hidden">
+                <button class="btn-share" id="btn-share-itinerary">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                    <span>Compartilhar Roteiro</span>
+                </button>
+            </div>
+            
+            <div id="itinerary-empty" class="empty-state">
+                <div class="empty-icon">
+                    <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+                <h3>Nenhuma atração selecionada</h3>
+                <p>Navegue pela aba "Atrações" e selecione os shows que você quer ver.</p>
+                <button class="btn-primary" onclick="switchTab('attractions')">Ver Atrações</button>
+            </div>
+            
+            <div id="itinerary-timeline" class="timeline-container hidden">
+                <!-- Dynamic timeline populated by JS -->
+            </div>
+        </section>
+
+        <!-- SECTION 3: MAPA (INTERACTIVE LEAFLET MAP) -->
+        <section id="section-map" class="app-section">
+            <div class="map-wrapper">
+                <div id="map"></div>
+                <div id="map-overlay-info" class="map-overlay-info hidden">
+                    <div id="map-route-summary">Selecione atrações para ver a rota.</div>
+                </div>
+            </div>
+        </section>
+        
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="app-nav">
+        <button class="nav-item active" data-tab="attractions">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            <span>Atrações</span>
+        </button>
+        <button class="nav-item" data-tab="match">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            <span>Match</span>
+        </button>
+        <button class="nav-item" data-tab="itinerary">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><line x1="9" y1="6" x2="20" y2="6"></line><line x1="9" y1="12" x2="20" y2="12"></line><line x1="9" y1="18" x2="20" y2="18"></line><line x1="5" y1="6" x2="5.01" y2="6"></line><line x1="5" y1="12" x2="5.01" y2="12"></line><line x1="5" y1="18" x2="5.01" y2="18"></line></svg>
+            <span>Meu Roteiro</span>
+        </button>
+        <button class="nav-item" data-tab="map">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+            <span>Mapa</span>
+        </button>
+    </nav>
+
+    <!-- CONFLICT RESOLUTION MODAL -->
+    <div id="conflict-modal" class="modal-overlay hidden">
+        <div class="modal-card animate-slide-up">
+            <div class="modal-header">
+                <div class="alert-icon">
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                </div>
+                <h3>Conflito de Horário</h3>
+            </div>
+            <div class="modal-body">
+                <p>Você selecionou uma atração que coincide com outra já agendada no mesmo horário. Escolha qual delas você deseja manter em seu roteiro:</p>
+                
+                <div class="conflict-options">
+                    <!-- Option A (Existing) -->
+                    <button class="conflict-option-btn" id="conflict-option-keep">
+                        <span class="option-tag">Manter Atual</span>
+                        <h4 id="conflict-keep-name">Atração A</h4>
+                        <div class="option-details">
+                            <span id="conflict-keep-time">18:00</span> &bull; 
+                            <span id="conflict-keep-stage">Palco Anhangabaú</span>
+                        </div>
+                    </button>
+                    
+                    <!-- Option B (New) -->
+                    <button class="conflict-option-btn" id="conflict-option-replace">
+                        <span class="option-tag highlight">Escolher Nova</span>
+                        <h4 id="conflict-replace-name">Atração B</h4>
+                        <div class="option-details">
+                            <span id="conflict-replace-time">18:00</span> &bull; 
+                            <span id="conflict-replace-stage">Palco São João</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="conflict-cancel-btn">Cancelar Seleção</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHARE MATCH / IMPORT MODAL -->
+    <div id="share-modal" class="modal-overlay hidden">
+        <div class="modal-card animate-slide-up">
+            <div class="modal-header">
+                <div class="alert-icon" style="color: var(--accent-pink);">
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                </div>
+                <h3 id="share-modal-title">Comparar Roteiros</h3>
+            </div>
+            
+            <div class="modal-body">
+                <!-- If recipient has itinerary: Match Comparison -->
+                <div id="share-match-view" class="hidden">
+                    <div class="match-score-container">
+                        <div class="match-circle">
+                            <span id="share-match-percent">0%</span>
+                            <span class="match-circle-label">Match</span>
+                        </div>
+                    </div>
+                    <p id="share-match-summary" style="text-align: center; margin-bottom: 24px; font-weight: 500; font-size: 0.95rem;">Carregando análise...</p>
+                    
+                    <div class="share-match-section">
+                        <h4 class="share-match-section-title">Shows que ambos vão:</h4>
+                        <div id="share-common-list" class="share-attractions-mini-list">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                    
+                    <div class="share-match-section">
+                        <h4 class="share-match-section-title">Adicione shows do seu amigo ao seu roteiro:</h4>
+                        <div id="share-suggested-list" class="share-attractions-mini-list">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- If recipient has NO itinerary: Direct Import -->
+                <div id="share-import-view" class="hidden">
+                    <p style="margin-bottom: 16px;">Seu amigo compartilhou um roteiro da Virada SP com você. Veja as atrações inclusas abaixo:</p>
+                    <div id="share-import-list" class="share-attractions-mini-list">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn-primary" id="share-action-btn">Ação</button>
+                <button class="btn-secondary" id="share-close-btn">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION FOR SHARING LINK COPIED -->
+    <div id="toast-notification" class="toast-notification hidden">
+        Link do roteiro copiado para a área de transferência!
+    </div>
+
+    <!-- Leaflet Map JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    
+    <!-- Data Source -->
+    <script src="data.js"></script>
+    
+    <!-- Application Logic -->
+    <script src="app.js"></script>
+</body>
+</html>

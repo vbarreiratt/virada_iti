@@ -1,0 +1,7 @@
+# Vercel and local logs
+.vercel
+vercel.log
+
+# System files
+.DS_Store
+Thumbs.db
