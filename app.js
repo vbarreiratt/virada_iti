@@ -7,6 +7,7 @@ let routePolyline = null;
 let routingControl = null;
 let pendingAddAttraction = null;
 let pendingReplaceAttraction = null;
+let streetRoutePath = [];
 
 // Default map center (Praça da Sé, São Paulo)
 const SAO_PAULO_CENTER = [-23.5505, -46.6333];
@@ -637,6 +638,9 @@ function clearMapMarkersAndRoutes() {
         }
         routingControl = null;
     }
+    
+    // Reset street-level routing coordinates
+    streetRoutePath = [];
 }
 
 // Call OpenStreetMap Nominatim Geocoding API
@@ -790,6 +794,11 @@ function plotCoordinates(points) {
                         if (routePolyline) {
                             map.removeLayer(routePolyline);
                             routePolyline = null;
+                        }
+                        
+                        // Extract and store street-level coordinates for canvas Stories rendering
+                        if (routes[0].coordinates) {
+                            streetRoutePath = routes[0].coordinates.map(c => ({ lat: c.lat, lng: c.lng }));
                         }
                         
                         const summary = routes[0].summary;
@@ -1559,7 +1568,12 @@ function renderStoriesCanvas(theme) {
     if (points.length > 0) {
         let minLat = Infinity, maxLat = -Infinity;
         let minLng = Infinity, maxLng = -Infinity;
-        points.forEach(pt => {
+        
+        // Use streetRoutePath if it has enough nodes, otherwise fallback to straight lines connecting points
+        const useStreetRoute = (streetRoutePath && streetRoutePath.length >= 2);
+        const boundsPoints = useStreetRoute ? [...streetRoutePath, ...points] : points;
+        
+        boundsPoints.forEach(pt => {
             if (pt.lat < minLat) minLat = pt.lat;
             if (pt.lat > maxLat) maxLat = pt.lat;
             if (pt.lng < minLng) minLng = pt.lng;
@@ -1609,7 +1623,16 @@ function renderStoriesCanvas(theme) {
         ctx.shadowColor = glowColor;
         ctx.shadowBlur = 18;
         
-        if (points.length >= 2) {
+        if (useStreetRoute) {
+            ctx.beginPath();
+            const firstPt = mapPoint(streetRoutePath[0]);
+            ctx.moveTo(firstPt.x, firstPt.y);
+            for (let i = 1; i < streetRoutePath.length; i++) {
+                const pt = mapPoint(streetRoutePath[i]);
+                ctx.lineTo(pt.x, pt.y);
+            }
+            ctx.stroke();
+        } else if (points.length >= 2) {
             ctx.beginPath();
             const firstPt = mapPoint(points[0]);
             ctx.moveTo(firstPt.x, firstPt.y);
